@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'owner/messages_page.dart';
+import 'owner/locations_page.dart';
 import 'settings_screen.dart';
 
 class OwnerDashboard extends StatelessWidget {
@@ -181,6 +182,34 @@ class OwnerDashboard extends StatelessWidget {
                                 );
                               },
                               child: _blueButton("Mesajlarım", small: true),
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (ownerToken == null ||
+                                    ownerToken!.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Token bulunamadı')),
+                                  );
+                                  return;
+                                }
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => LocationsPage(
+                                      token: ownerToken!.trim(),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: _blueButton("Konumlarım", small: true),
                             ),
                           ),
 
