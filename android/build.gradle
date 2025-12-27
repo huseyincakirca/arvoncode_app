@@ -16,3 +16,13 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+ext.flutter = [
+    compileSdkVersion: 34,
+    minSdkVersion    : 21,
+    targetSdkVersion : 34
+]
+
+buildscript {
+    ext.kotlin_version = '1.9.10'
+}
+

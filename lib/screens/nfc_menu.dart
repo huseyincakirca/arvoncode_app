@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'owner_dashboard.dart';
-import 'package:arvoncode_app/models/send_message.dart';
-import 'package:arvoncode_app/services/message_service.dart';
+// import 'package:arvoncode_app/models/send_message.dart';
+// import 'package:arvoncode_app/services/message_service.dart';
+import 'package:arvoncode_app/services/quick_message_service.dart';
 
 class NfcMenuScreen extends StatelessWidget {
   const NfcMenuScreen({super.key});
@@ -72,22 +73,24 @@ class NfcMenuScreen extends StatelessWidget {
                   _buildMenuButton(
                     title: "5 Dakika Geliyorum",
                     onTap: () async {
-                      final req = SendMessageRequest(
-                        cardId: "ACX-4921",
-                        message: "5 Dakika Geliyorum",
-                        timestamp: DateTime.now().toString(),
-                        location:
-                            "0,0", // Şimdilik dummy, sonra GPS ekleyeceğiz
+                      const String vehicleUuid = "TEST123456";
+                      // Şimdilik sabit, sonra QR/NFC’den gelecek
+
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      bool ok = await QuickMessageService.sendQuickMessage(
+                        vehicleUuid: vehicleUuid,
+                        quickMessageId: 1, // "5 Dakika Geliyorum"
                       );
 
-                      bool ok = await MessageService.sendQuickMessage(req);
+                      if (!context.mounted) return;
 
                       if (ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(content: Text("Mesaj Gönderildi")),
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(content: Text("Mesaj Gönderilemedi")),
                         );
                       }
