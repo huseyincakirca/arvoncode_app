@@ -1,12 +1,99 @@
 import 'package:flutter/material.dart';
+import '../models/message.dart';
+import '../services/location_service.dart';
+import '../services/message_service.dart';
 import 'owner/messages_page.dart';
 import 'owner/locations_page.dart';
 import 'settings_screen.dart';
 
-class OwnerDashboard extends StatelessWidget {
+class OwnerDashboard extends StatefulWidget {
   final String? ownerToken;
 
   const OwnerDashboard({super.key, this.ownerToken});
+
+  @override
+  State<OwnerDashboard> createState() => _OwnerDashboardState();
+}
+
+class _OwnerDashboardState extends State<OwnerDashboard> {
+  bool _loadingLocation = true;
+  Map<String, dynamic>? _latestLocation;
+  String? _locationMessage;
+  bool _loadingMessage = true;
+  Message? _latestMessage;
+  String? _messageStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLatestMessage();
+    _fetchLatestLocation();
+  }
+
+  Future<void> _fetchLatestMessage() async {
+    final token = widget.ownerToken?.trim();
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _messageStatus = 'Token bulunamadı';
+        _loadingMessage = false;
+      });
+      return;
+    }
+
+    try {
+      final latest = await MessageService().fetchLatestMessage(token: token);
+
+      if (!mounted) return;
+
+      setState(() {
+        _latestMessage = latest;
+        _messageStatus = latest == null ? 'Henüz mesaj yok' : null;
+        _loadingMessage = false;
+      });
+    } catch (e) {
+      debugPrint('LAST MESSAGE ERROR: $e');
+      if (!mounted) return;
+
+      setState(() {
+        _messageStatus = 'Mesajlar alınamadı';
+        _loadingMessage = false;
+      });
+    }
+  }
+
+  Future<void> _fetchLatestLocation() async {
+    final token = widget.ownerToken?.trim();
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _locationMessage = 'Token bulunamadı';
+        _loadingLocation = false;
+      });
+      return;
+    }
+
+    try {
+      final locations = await LocationService.fetchOwnerLocations(
+        token: token,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _latestLocation = locations.isNotEmpty ? locations.first : null;
+        _locationMessage =
+            locations.isEmpty ? 'Henüz konum kaydı yok' : null;
+        _loadingLocation = false;
+      });
+    } catch (e) {
+      debugPrint('LAST LOCATION ERROR: $e');
+      if (!mounted) return;
+
+      setState(() {
+        _locationMessage = 'Konumlar alınamadı';
+        _loadingLocation = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,21 +168,7 @@ class OwnerDashboard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        const Text(
-                          "\"5 Dakika Geliyorum\"",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Alındı: 12:42",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                          ),
-                        ),
+                        _buildLastMessageContent(),
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerRight,
@@ -117,7 +190,7 @@ class OwnerDashboard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Araç Konumu",
+                                  "Son Konum",
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -125,34 +198,7 @@ class OwnerDashboard extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-
-                                // Harita boş placeholder
-                                Container(
-                                  height: 150,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(14),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF17202A),
-                                        Color(0xFF1C1F26),
-                                      ],
-                                    ),
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      "Harita Burada Görünecek",
-                                      style: TextStyle(
-                                        color: Colors.white54,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 10),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: _blueButton("Haritada Aç"),
-                                ),
+                                _buildLastLocationContent(),
                               ],
                             ),
                           ),
@@ -163,8 +209,8 @@ class OwnerDashboard extends StatelessWidget {
                             alignment: Alignment.centerRight,
                             child: GestureDetector(
                               onTap: () {
-                                if (ownerToken == null ||
-                                    ownerToken!.trim().isEmpty) {
+                                if (widget.ownerToken == null ||
+                                    widget.ownerToken!.trim().isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                         content: Text('Token bulunamadı')),
@@ -176,7 +222,7 @@ class OwnerDashboard extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => MessagesPage(
-                                      token: ownerToken!.trim(),
+                                      token: widget.ownerToken!.trim(),
                                     ),
                                   ),
                                 );
@@ -191,8 +237,8 @@ class OwnerDashboard extends StatelessWidget {
                             alignment: Alignment.centerRight,
                             child: GestureDetector(
                               onTap: () {
-                                if (ownerToken == null ||
-                                    ownerToken!.trim().isEmpty) {
+                                if (widget.ownerToken == null ||
+                                    widget.ownerToken!.trim().isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                         content: Text('Token bulunamadı')),
@@ -204,7 +250,7 @@ class OwnerDashboard extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => LocationsPage(
-                                      token: ownerToken!.trim(),
+                                      token: widget.ownerToken!.trim(),
                                     ),
                                   ),
                                 );
@@ -291,6 +337,94 @@ class OwnerDashboard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLastMessageContent() {
+    if (_loadingMessage) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final status = _messageStatus;
+    if (status != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          status,
+          style: const TextStyle(
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+
+    final content = _latestMessage?.content ?? '';
+    final createdAt = _latestMessage?.createdAt?.toString() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _infoRow('Mesaj', content),
+        const SizedBox(height: 6),
+        _infoRow('created_at', createdAt),
+      ],
+    );
+  }
+
+  Widget _buildLastLocationContent() {
+    if (_loadingLocation) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final message = _locationMessage;
+    if (message != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+
+    final latitude = _latestLocation?['lat']?.toString() ?? '';
+    final longitude = _latestLocation?['lng']?.toString() ?? '';
+    final createdAt = _latestLocation?['created_at']?.toString() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _infoRow('Latitude', latitude),
+        const SizedBox(height: 6),
+        _infoRow('Longitude', longitude),
+        const SizedBox(height: 6),
+        _infoRow('created_at', createdAt),
+      ],
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value.isNotEmpty ? value : '-',
+            style: const TextStyle(
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

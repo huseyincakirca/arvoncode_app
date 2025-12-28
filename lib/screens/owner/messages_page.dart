@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../models/message.dart';
@@ -24,6 +27,11 @@ class _MessagesPageState extends State<MessagesPage> {
   }
 
   Future<void> _fetchMessages() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
       final messages =
           await MessageService().fetchMessages(token: widget.token);
@@ -32,10 +40,10 @@ class _MessagesPageState extends State<MessagesPage> {
         _messages = messages;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'error';
+        _error = _mapErrorMessage(e);
         _loading = false;
       });
     }
@@ -57,7 +65,19 @@ class _MessagesPageState extends State<MessagesPage> {
     }
 
     if (_error != null) {
-      return const Center(child: Text('Bir hata oluştu'));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _fetchMessages,
+              child: const Text('Tekrar Dene'),
+            ),
+          ],
+        ),
+      );
     }
 
     if (_messages.isEmpty) {
@@ -69,7 +89,7 @@ class _MessagesPageState extends State<MessagesPage> {
       itemBuilder: (context, index) {
         final message = _messages[index];
         final createdAtText = message.createdAt != null
-            ? message.createdAt!.toLocal().toString()
+            ? _formatDateTime(message.createdAt!)
             : '';
 
         return ListTile(
@@ -97,5 +117,29 @@ class _MessagesPageState extends State<MessagesPage> {
         );
       },
     );
+  }
+
+  String _mapErrorMessage(Object error) {
+    if (error is SocketException || error is TimeoutException) {
+      return 'Bağlantı hatası. İnternetinizi kontrol edin.';
+    }
+
+    final msg = error.toString();
+    if (msg.contains('HTTP 401')) {
+      return 'Oturum süresi doldu. Tekrar giriş yapın.';
+    }
+
+    return 'Mesajlar yüklenemedi.';
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final local = dateTime.toLocal();
+    String two(int v) => v.toString().padLeft(2, '0');
+    final day = two(local.day);
+    final month = two(local.month);
+    final year = local.year.toString();
+    final hour = two(local.hour);
+    final minute = two(local.minute);
+    return '$day.$month.$year $hour:$minute';
   }
 }

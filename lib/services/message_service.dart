@@ -45,6 +45,46 @@ class MessageService {
     }).toList();
   }
 
+  Future<Message?> fetchLatestMessage({required String token}) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/messages/latest');
+
+    final res = await http.get(
+      url,
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('HTTP ${res.statusCode}: ${res.body}');
+    }
+
+    final decoded = jsonDecode(res.body);
+
+    if (decoded is! Map) {
+      throw Exception('Invalid response format');
+    }
+
+    final Map<String, dynamic> json = Map<String, dynamic>.from(decoded);
+
+    if (json['ok'] != true) {
+      throw Exception('API error: ${json['message'] ?? 'Unknown error'}');
+    }
+
+    if (json['data'] == null) {
+      return null;
+    }
+
+    final data = json['data'];
+
+    if (data is! Map) {
+      throw Exception('Invalid data payload');
+    }
+
+    return Message.fromJson(Map<String, dynamic>.from(data));
+  }
+
   Future<Map<String, dynamic>> sendCustomMessage({
     required String vehicleUuid,
     required String message,
